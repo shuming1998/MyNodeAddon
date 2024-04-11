@@ -51,7 +51,9 @@ INCS_Debug := \
 	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/openssl/openssl/include \
 	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/uv/include \
 	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/zlib \
-	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/v8/include
+	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/v8/include \
+	-I/opt/homebrew/Cellar/llvm@14/14.0.6/include \
+	"-I$(srcdir)/\"/Users/cuishuming/Desktop/MyNodeAddon/node_modules/node-addon-api\""
 
 DEFS_Release := \
 	'-DNODE_GYP_MODULE_NAME=mynodeaddon' \
@@ -101,7 +103,9 @@ INCS_Release := \
 	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/openssl/openssl/include \
 	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/uv/include \
 	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/zlib \
-	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/v8/include
+	-I/Users/cuishuming/Library/Caches/node-gyp/21.7.2/deps/v8/include \
+	-I/opt/homebrew/Cellar/llvm@14/14.0.6/include \
+	"-I$(srcdir)/\"/Users/cuishuming/Desktop/MyNodeAddon/node_modules/node-addon-api\""
 
 OBJS := \
 	$(obj).target/$(TARGET)/src/myaddon.o
@@ -133,6 +137,9 @@ $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.cpp FORCE_DO_CMD
 # End of this set of suffix rules
 ### Rules for final target.
 LDFLAGS_Debug := \
+	-L/opt/homebrew/Cellar/llvm@14/14.0.6/lib -Wl,-search_paths_first -Wl,-headerpad_max_install_names \
+	 \
+	-lLLVM-14 \
 	-undefined dynamic_lookup \
 	-Wl,-search_paths_first \
 	-mmacosx-version-min=11.0 \
@@ -141,10 +148,16 @@ LDFLAGS_Debug := \
 	-stdlib=libc++
 
 LIBTOOLFLAGS_Debug := \
+	-L/opt/homebrew/Cellar/llvm@14/14.0.6/lib -Wl,-search_paths_first -Wl,-headerpad_max_install_names \
+	 \
+	-lLLVM-14 \
 	-undefined dynamic_lookup \
 	-Wl,-search_paths_first
 
 LDFLAGS_Release := \
+	-L/opt/homebrew/Cellar/llvm@14/14.0.6/lib -Wl,-search_paths_first -Wl,-headerpad_max_install_names \
+	 \
+	-lLLVM-14 \
 	-undefined dynamic_lookup \
 	-Wl,-search_paths_first \
 	-mmacosx-version-min=11.0 \
@@ -153,6 +166,9 @@ LDFLAGS_Release := \
 	-stdlib=libc++
 
 LIBTOOLFLAGS_Release := \
+	-L/opt/homebrew/Cellar/llvm@14/14.0.6/lib -Wl,-search_paths_first -Wl,-headerpad_max_install_names \
+	 \
+	-lLLVM-14 \
 	-undefined dynamic_lookup \
 	-Wl,-search_paths_first
 
