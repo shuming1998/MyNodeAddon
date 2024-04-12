@@ -34,8 +34,28 @@ struct LLVMStruct {
     StructType *LLVMStructType;
 };
 
+// 定义一个通用的函数指针类型
+typedef napi_status (*napi_create_func)(napi_env, ...);
+
 // 建立映射，将生产者对应的结构体名称映射到 IR 结构体
 std::unordered_map<std::string, LLVMStruct> map;
+// N-API 函数指针映射表，将 LLVM 变量类型映射到 Nodejs 创建变量类型的函数指针
+std::unordered_map<llvm::Type::TypeID, napi_create_func> napi_function_map;
+
+// 初始化 N-API 函数指针映射表
+void InitializeNapiFunctionMap(napi_env env) {
+    napi_function_map[llvm::Type::TypeID::IntegerTyID] = reinterpret_cast<napi_create_func>(napi_create_int32);
+    napi_function_map[llvm::Type::TypeID::IntegerTyID] = reinterpret_cast<napi_create_func>(napi_create_int64);
+    napi_function_map[llvm::Type::TypeID::FloatTyID] = reinterpret_cast<napi_create_func>(napi_create_double);
+    napi_function_map[llvm::Type::TypeID::DoubleTyID] = reinterpret_cast<napi_create_func>(napi_create_double);
+
+    //napi_function_map[4] = reinterpret_cast<napi_create_func>(napi_create_uint32);
+    //napi_function_map[5] = reinterpret_cast<napi_create_func>(napi_create_string_utf8);
+    //napi_function_map[6] = reinterpret_cast<napi_create_func>(napi_create_string_latin1);
+    //napi_function_map[7] = reinterpret_cast<napi_create_func>(napi_create_boolean);
+    //napi_function_map[8] = reinterpret_cast<napi_create_func>(napi_create_null);
+    //napi_function_map[9] = reinterpret_cast<napi_create_func>(napi_create_undefined);
+}
 
 // 定义结构体，模拟生产者生成的数据
 struct MyStruct {
@@ -88,7 +108,6 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
     InitializeNativeTargetAsmPrinter();
     InitializeNativeTargetAsmParser();
     TheModule = std::make_unique<Module>("MyModule", TheContext);
-
     auto JTMB = ExitOnErr(JITTargetMachineBuilder::detectHost());
     auto DL = ExitOnErr(JTMB.getDefaultDataLayoutForTarget());
     TheModule->setDataLayout(DL);
@@ -122,7 +141,6 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
 
     napi_value obj;
     napi_create_object(env, &obj);
-    napi_value name, score;
 
     // 定义一个生产者生产的数据对象，这里写死对应的结构体名称为 MyStruct，向内存区域 void* 写入了一个 int 和一个 float
     MyStruct member = {"MyStruct", 42, 3.14};
@@ -131,13 +149,18 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
     LLVMStruct llvmMember = map[member.type];
     // 遍历 IR 结构体类型中的成员，并根据类型设置 node 成员的数据
     for (unsigned i = 0, e = llvmMember.LLVMStructType->getNumElements(); i != e; ++i) {
+        napi_value nValue;
         auto *ElementType = llvmMember.LLVMStructType->getElementType(i);
+        llvm::Type::TypeID typeID =  ElementType->getTypeID();
+        outs() << "element type id: " << typeID << "\n";
+
+        // TODO: 根据类型设置 node 成员：1.需要根据成员类型布局计算偏移量，2.需要获取json中成员名称，代替硬编码 "name" 和 "score"
         if (ElementType->isIntegerTy()) {
-            napi_create_int32(env, *static_cast<int*>(member.dataPtr), &name);
-            napi_set_named_property(env, obj, "name", name);
+            napi_create_int32(env, *static_cast<int*>(member.dataPtr), &nValue);
+            napi_set_named_property(env, obj, "name", nValue);
         } else if (ElementType->isFloatingPointTy()) {
-            napi_create_double(env, *reinterpret_cast<float*>(static_cast<int*>(member.dataPtr) + 1), &score);
-            napi_set_named_property(env, obj, "score", score);
+            napi_create_double(env, *reinterpret_cast<float*>(static_cast<int*>(member.dataPtr) + 1), &nValue);
+            napi_set_named_property(env, obj, "score", nValue);
         }
     }
 
@@ -146,6 +169,10 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
 
 napi_value Init(napi_env env, napi_value exports) {
     napi_value fn;
+
+    // 初始化 N-API 函数映射表
+    InitializeNapiFunctionMap(env);
+
     napi_create_function(env, nullptr, 0, CreateObjectFromMyStruct, nullptr, &fn);
     napi_set_named_property(env, exports, "createObjectFromMyStruct", fn);
 
