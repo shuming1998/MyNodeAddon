@@ -175,7 +175,7 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
         auto it = napi_function_map.find(typeID);
         if (it != napi_function_map.end()) {
             // 打印一下类型ID
-             outs() << "typeID: " << typeID << "\n";
+            outs() << "typeID: " << typeID << "\n";
             // 打印一下当前偏移量
             outs() << "currentOffset: " << currentOffset << "\n";
 
