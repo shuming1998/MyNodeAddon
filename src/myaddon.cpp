@@ -172,7 +172,7 @@ void InitLLVMStructFronJSON() {
 
 // 定义一个生产者生产的数据对象，这里写死对应的结构体名称为 MyStruct，向内存区域 void* 写入了一个 int 和一个 float
 MyStruct member = {"MyStruct", 42, 3.14};
-
+// LLVM IR struct 构造 js 对象
 napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     napi_value obj;
@@ -228,6 +228,7 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
 
 // 用于构造 js 对象的 C++ 结构体对象
 CppStruct cst = CppStruct{42, 3.14};
+// C++ struct 构造 js 对象
 napi_value CreateObjectFromCppStruct(napi_env env, napi_callback_info info) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     napi_value obj;
