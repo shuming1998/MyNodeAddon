@@ -165,8 +165,7 @@ void InitLLVMStructFronJSON() {
     //}
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "\nCreate LLVM Struct From Json Cost: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
-    std::cout << "Create LLVM Struct From Json Cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]\n" << std::endl;
+    std::cout << "[1] Create LLVM Struct From Json Cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
 }
 
 // 定义一个生产者生产的数据对象，这里写死对应的结构体名称为 MyStruct，向内存区域 void* 写入了一个 int 和一个 float
@@ -219,7 +218,9 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
         }
     }
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "\nCreate js member by LLVM struct cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+    auto nsTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+    double usTime = nsTime / 1000.0;
+    std::cout << "[2] Create js member by LLVM struct cost: " << nsTime << "[ns] = " << usTime << "[µs]" << std::endl;
     return obj;
 }
 
@@ -239,7 +240,9 @@ napi_value CreateObjectFromCppStruct(napi_env env, napi_callback_info info) {
     napi_set_named_property(env, obj, "fval", fValue);
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "Create js member by cpp native  cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]\n"<< std::endl;
+    auto nsTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+    double usTime = nsTime / 1000.0;
+    std::cout << "[3] Create js member by cpp native  cost: " << nsTime << "[ns] = " << usTime << "[µs]\n"<< std::endl;
     return obj;
 }
 
