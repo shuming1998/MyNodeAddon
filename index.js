@@ -8,5 +8,14 @@
  * Copyright (c) 2024 by ${cuishuming@baidu.com}, All Rights Reserved. 
  */
 const addon = require('./build/Release/mynodeaddon');
+
+//console.time('createObjectFromMyStruct');
 const myStructObj = addon.createObjectFromMyStruct();
+//console.timeEnd('createObjectFromMyStruct');
+
+//console.time('createObjectFromCppStruct');
+const cppStructObj = addon.createObjectFromCppStruct();
+//console.timeEnd('createObjectFromCppStruct');
+
 console.log(myStructObj);
+console.log(cppStructObj);

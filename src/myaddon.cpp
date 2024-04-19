@@ -21,6 +21,7 @@
 #include <string>
 #include <cstring>
 #include <unordered_map>
+#include <chrono>
 
 using namespace llvm;
 using namespace llvm::orc;
@@ -31,6 +32,14 @@ LLVMContext TheContext;
 IRBuilder<> Builder(TheContext);
 std::unique_ptr<Module> TheModule;
 std::unique_ptr<LLJIT> TheJIT;
+
+// C++ 结构体，对比 IR 结构体 构造 js 对象速度
+struct CppStruct {
+    CppStruct() : ival(0), fval(0.f) {}
+    CppStruct(int i, float f) : ival(i), fval(f) {}
+    int ival;
+    float fval;
+};
 
 // IR 结构体，用来保存 IR Struct 的名称和指针
 struct LLVMStruct {
@@ -112,7 +121,7 @@ std::unordered_map<llvm::Type::TypeID, std::function<napi_status(napi_env, void*
     // ... 为其他LLVM类型添加映射 ...
 };
 
-napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
+void InitLLVMStructFronJSON() {
     InitializeNativeTarget();
     InitializeNativeTargetAsmPrinter();
     InitializeNativeTargetAsmParser();
@@ -121,6 +130,7 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
     auto DL = ExitOnErr(JTMB.getDefaultDataLayoutForTarget());
     TheModule->setDataLayout(DL);
 
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     // 读取和解析 json 文件
     std::ifstream configStream("structs.json");
     if (!configStream.is_open()) {
@@ -139,7 +149,7 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
             std::string fieldName = fieldDef["name"].get<std::string>();
             fieldTypes.push_back(typeMap[fieldType]);
             fieldNames.push_back(fieldName); // 添加成员名称到列表
-            outs() << "field name: " << fieldName << "\n";
+            //outs() << "field name: " << fieldName << "\n";
         }
 
         StructType *structType = StructType::create(TheContext, fieldTypes, structName);
@@ -150,15 +160,22 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
     }
 
     // 打印一下都保存了哪些结构体
-    for (auto &lmStruct : map) {
-        outs() << "llvm struct name: " << lmStruct.first << "\n";
-    }
+    //for (auto &lmStruct : map) {
+    //    outs() << "llvm struct name: " << lmStruct.first << "\n";
+    //}
 
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "\nCreate LLVM Struct From Json Cost: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+    std::cout << "Create LLVM Struct From Json Cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns]\n" << std::endl;
+}
+
+// 定义一个生产者生产的数据对象，这里写死对应的结构体名称为 MyStruct，向内存区域 void* 写入了一个 int 和一个 float
+MyStruct member = {"MyStruct", 42, 3.14};
+
+napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     napi_value obj;
     napi_create_object(env, &obj);
-
-    // 定义一个生产者生产的数据对象，这里写死对应的结构体名称为 MyStruct，向内存区域 void* 写入了一个 int 和一个 float
-    MyStruct member = {"MyStruct", 42, 3.14};
 
     // 拿到生产者数据后，根据结构体名称从 map 中取出 IR 结构体类型
     LLVMStruct llvmMember = map[member.type];
@@ -175,9 +192,9 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
         auto it = napi_function_map.find(typeID);
         if (it != napi_function_map.end()) {
             // 打印一下类型ID
-            outs() << "typeID: " << typeID << "\n";
+            //outs() << "typeID: " << typeID << "\n";
             // 打印一下当前偏移量
-            outs() << "currentOffset: " << currentOffset << "\n";
+            //outs() << "currentOffset: " << currentOffset << "\n";
 
             // 根据类型取得对应的元素大小
             size_t elementSize = TheModule->getDataLayout().getTypeAllocSize(ElementType);
@@ -187,11 +204,12 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
             // 调用映射表中的函数，它会转换类型并创建相应的N-API值
             napi_status status = it->second(env, dataPtrWithOffset, &nValue);
 
-            if (status != napi_ok) {
-                // 处理错误情况
-            }
+            // 处理错误情况
+            //if (status != napi_ok) {
 
-            // 使用成员名称设置JavaScript对象的属性
+            //}
+
+            // 使用成员名称设置 JavaScript 对象的属性
             napi_set_named_property(env, obj, memberNames[i].c_str(), nValue);
 
             // 更新偏移量
@@ -200,15 +218,39 @@ napi_value CreateObjectFromMyStruct(napi_env env, napi_callback_info info) {
             // 错误处理：找不到对应的类型ID
         }
     }
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "\nCreate js member by LLVM struct cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+    return obj;
+}
 
+// 用于构造 js 对象的 C++ 结构体对象
+CppStruct cst = CppStruct{42, 3.14};
+napi_value CreateObjectFromCppStruct(napi_env env, napi_callback_info info) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    napi_value obj;
+    napi_create_object(env, &obj);
+
+    napi_value iValue;
+    napi_value fValue;
+    napi_create_int32(env, cst.ival, &iValue);
+    napi_create_double(env, cst.fval, &fValue);
+    // 使用成员名称设置 JavaScript 对象的属性
+    napi_set_named_property(env, obj, "ival", iValue);
+    napi_set_named_property(env, obj, "fval", fValue);
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Create js member by cpp native cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]\n"<< std::endl;
     return obj;
 }
 
 napi_value Init(napi_env env, napi_value exports) {
+    InitLLVMStructFronJSON();
     napi_value fn;
 
     napi_create_function(env, nullptr, 0, CreateObjectFromMyStruct, nullptr, &fn);
     napi_set_named_property(env, exports, "createObjectFromMyStruct", fn);
+    napi_create_function(env, nullptr, 0, CreateObjectFromCppStruct, nullptr, &fn);
+    napi_set_named_property(env, exports, "createObjectFromCppStruct", fn);
 
     return exports;
 }
