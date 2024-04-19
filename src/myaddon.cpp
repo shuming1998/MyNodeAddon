@@ -165,7 +165,9 @@ void InitLLVMStructFronJSON() {
     //}
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "[1] Create LLVM Struct From Json Cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
+    auto nsTime = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
+    double usTime = nsTime / 1000.0;
+    std::cout << "[1] Create LLVM Struct From Json Cost: " << nsTime << "[ns] = " << usTime << "[µs]" << std::endl;
 }
 
 // 定义一个生产者生产的数据对象，这里写死对应的结构体名称为 MyStruct，向内存区域 void* 写入了一个 int 和一个 float
