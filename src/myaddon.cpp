@@ -239,7 +239,7 @@ napi_value CreateObjectFromCppStruct(napi_env env, napi_callback_info info) {
     napi_set_named_property(env, obj, "fval", fValue);
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "Create js member by cpp native cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]\n"<< std::endl;
+    std::cout << "Create js member by cpp native  cost: " << std::chrono::duration_cast<std::chrono::nanoseconds> (end - begin).count() << "[ns] = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]\n"<< std::endl;
     return obj;
 }
 
